@@ -3,7 +3,7 @@
     "node": "18.x"
   },
   "dependencies": {
-    "chrome-aws-lambda": "10.1.0",
-    "puppeteer-core": "10.1.0"
+    "@sparticuz/chrome-aws-lambda": "^15.0.0",
+    "puppeteer-core": "^22.0.0"
   }
 }
