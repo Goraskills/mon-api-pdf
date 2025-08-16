@@ -1,16 +1,6 @@
-// Fichier : /api/generate-pdf.js (Version finale corrigée)
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
-
-const exePath = '/usr/bin/google-chrome';
-
-async function getOptions() {
-  return {
-    args: chromium.args,
-    executablePath: await chromium.executablePath || exePath,
-    headless: chromium.headless,
-  };
-}
+// Fichier : /api/generate-pdf.js (Version finale et propre)
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export default async function handler(request, response) {
   // Autorisations (CORS)
@@ -25,14 +15,21 @@ export default async function handler(request, response) {
   }
 
   try {
-    // ▼▼▼ LIGNE CORRIGÉE ▼▼▼
-    // On accède directement à request.body, Vercel s'occupe de le préparer pour nous.
-    const html = request.body.html; 
+    // On récupère le code HTML envoyé par Glide
+    const html = request.body.html;
 
-    const options = await getOptions();
-    const browser = await puppeteer.launch(options);
+    // On s'assure que le HTML n'est pas vide
+    if (!html) {
+      return response.status(400).send("Erreur : Le contenu HTML est manquant.");
+    }
+
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
     const page = await browser.newPage();
-
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
 
@@ -43,29 +40,7 @@ export default async function handler(request, response) {
 
   } catch (error) {
     console.error(error);
-    response.status(500).send("Erreur lors de la génération du PDF.");
-  }
-}
-
-  try {
-    // ▼▼▼ LIGNE CORRIGÉE ▼▼▼
-    const body = await request.json(); // On parse explicitement le JSON de la requête
-    const html = body.html; // On récupère la clé "html"
-
-    const options = await getOptions();
-    const browser = await puppeteer.launch(options);
-    const page = await browser.newPage();
-
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-
-    await browser.close();
-
-    response.setHeader('Content-Type', 'application/pdf');
-    response.send(pdfBuffer);
-
-  } catch (error) {
-    console.error(error);
-    response.status(500).send("Erreur lors de la génération du PDF.");
+    // On renvoie une erreur plus détaillée si possible
+    response.status(500).send(`Erreur lors de la génération du PDF: ${error.message}`);
   }
 }
