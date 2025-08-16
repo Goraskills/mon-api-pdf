@@ -1,4 +1,4 @@
-// Fichier : /api/generate-pdf.js (Version finale avec CORS)
+// Fichier : /api/generate-pdf.js (Version finale corrigée)
 const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
 
@@ -12,23 +12,22 @@ async function getOptions() {
   };
 }
 
-// La fonction principale
 export default async function handler(request, response) {
-  // ▼▼▼ PARTIE AJOUTÉE POUR LES AUTORISATIONS (CORS) ▼▼▼
+  // Autorisations (CORS)
   response.setHeader('Access-Control-Allow-Credentials', true);
-  response.setHeader('Access-Control-Allow-Origin', '*'); // Autorise n'importe quel domaine
+  response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-  
-  // Si c'est une requête "OPTIONS" (le navigateur vérifie les autorisations), on répond OK.
+
   if (request.method === 'OPTIONS') {
     response.status(200).end();
     return;
   }
-  // ▲▲▲ FIN DE LA PARTIE AJOUTÉE ▲▲▲
 
   try {
-    const html = request.body.html;
+    // ▼▼▼ LIGNE CORRIGÉE ▼▼▼
+    const body = await request.json(); // On parse explicitement le JSON de la requête
+    const html = body.html; // On récupère la clé "html"
 
     const options = await getOptions();
     const browser = await puppeteer.launch(options);
@@ -36,7 +35,7 @@ export default async function handler(request, response) {
 
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    
+
     await browser.close();
 
     response.setHeader('Content-Type', 'application/pdf');
