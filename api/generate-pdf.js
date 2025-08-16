@@ -1,6 +1,6 @@
-// Fichier : /api/generate-pdf.js (Version finale avec arguments pour Vercel)
+// Fichier : /api/generate-pdf.js (Version finale avec chrome-aws-lambda)
+import chromium from 'chrome-aws-lambda';
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 
 export default async function handler(request, response) {
   // Autorisations (CORS)
@@ -22,21 +22,12 @@ export default async function handler(request, response) {
       return response.status(400).send("Erreur : Le contenu HTML est manquant.");
     }
 
-    // Configuration minimale pour la compatibilité Vercel
     browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
-      executablePath: await chromium.executablePath(),
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
       headless: chromium.headless,
+      ignoreHTTPSErrors: true,
     });
 
     const page = await browser.newPage();
