@@ -1,8 +1,7 @@
-// Fichier : /api/generate-pdf.js
+// Fichier : /api/generate-pdf.js (Version finale avec CORS)
 const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
 
-// On configure pour que ça marche sur Vercel
 const exePath = '/usr/bin/google-chrome';
 
 async function getOptions() {
@@ -13,24 +12,33 @@ async function getOptions() {
   };
 }
 
-// La fonction principale qui sera appelée par Vercel
+// La fonction principale
 export default async function handler(request, response) {
+  // ▼▼▼ PARTIE AJOUTÉE POUR LES AUTORISATIONS (CORS) ▼▼▼
+  response.setHeader('Access-Control-Allow-Credentials', true);
+  response.setHeader('Access-Control-Allow-Origin', '*'); // Autorise n'importe quel domaine
+  response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  response.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  
+  // Si c'est une requête "OPTIONS" (le navigateur vérifie les autorisations), on répond OK.
+  if (request.method === 'OPTIONS') {
+    response.status(200).end();
+    return;
+  }
+  // ▲▲▲ FIN DE LA PARTIE AJOUTÉE ▲▲▲
+
   try {
-    const html = request.body.html; // On récupère le HTML envoyé par Glide
+    const html = request.body.html;
 
     const options = await getOptions();
     const browser = await puppeteer.launch(options);
     const page = await browser.newPage();
 
-    // On applique le HTML à une page web invisible
     await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    // On génère le PDF à partir de cette page
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-
+    
     await browser.close();
 
-    // On renvoie le fichier PDF terminé
     response.setHeader('Content-Type', 'application/pdf');
     response.send(pdfBuffer);
 
