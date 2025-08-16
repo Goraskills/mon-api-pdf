@@ -26,6 +26,29 @@ export default async function handler(request, response) {
 
   try {
     // ▼▼▼ LIGNE CORRIGÉE ▼▼▼
+    // On accède directement à request.body, Vercel s'occupe de le préparer pour nous.
+    const html = request.body.html; 
+
+    const options = await getOptions();
+    const browser = await puppeteer.launch(options);
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+
+    await browser.close();
+
+    response.setHeader('Content-Type', 'application/pdf');
+    response.send(pdfBuffer);
+
+  } catch (error) {
+    console.error(error);
+    response.status(500).send("Erreur lors de la génération du PDF.");
+  }
+}
+
+  try {
+    // ▼▼▼ LIGNE CORRIGÉE ▼▼▼
     const body = await request.json(); // On parse explicitement le JSON de la requête
     const html = body.html; // On récupère la clé "html"
 
