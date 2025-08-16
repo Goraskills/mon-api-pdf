@@ -1,9 +1,8 @@
-// Fichier : /api/generate-pdf.js (Version finale avec chrome-aws-lambda)
-import chromium from 'chrome-aws-lambda';
+// Fichier : /api/generate-pdf.js
+import chromium from '@sparticuz/chrome-aws-lambda';
 import puppeteer from 'puppeteer-core';
 
 export default async function handler(request, response) {
-  // Autorisations (CORS)
   response.setHeader('Access-Control-Allow-Credentials', true);
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -25,14 +24,18 @@ export default async function handler(request, response) {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
+      executablePath: await chromium.executablePath, // 👈 Chromium fourni par @sparticuz
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true
+    });
 
     response.setHeader('Content-Type', 'application/pdf');
     response.send(pdfBuffer);
