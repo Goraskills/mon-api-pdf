@@ -1,4 +1,4 @@
-// Fichier : /api/generate-pdf.js (Version finale et propre)
+// Fichier : /api/generate-pdf.js (Version finale avec arguments pour Vercel)
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 
@@ -14,17 +14,27 @@ export default async function handler(request, response) {
     return;
   }
 
-  try {
-    // On récupère le code HTML envoyé par Glide
-    const html = request.body.html;
+  let browser = null;
 
-    // On s'assure que le HTML n'est pas vide
+  try {
+    const html = request.body.html;
     if (!html) {
       return response.status(400).send("Erreur : Le contenu HTML est manquant.");
     }
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
+    // Configuration minimale pour la compatibilité Vercel
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
@@ -33,14 +43,15 @@ export default async function handler(request, response) {
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
 
-    await browser.close();
-
     response.setHeader('Content-Type', 'application/pdf');
     response.send(pdfBuffer);
 
   } catch (error) {
     console.error(error);
-    // On renvoie une erreur plus détaillée si possible
     response.status(500).send(`Erreur lors de la génération du PDF: ${error.message}`);
+  } finally {
+    if (browser !== null) {
+      await browser.close();
+    }
   }
 }
